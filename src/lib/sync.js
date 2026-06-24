@@ -49,6 +49,19 @@ class LocalChannel {
     return this
   }
 
+  off(type, filter, callback) {
+    if (type === 'broadcast') {
+      const key = filter.event
+      if (this._handlers[key]) {
+        this._handlers[key] = this._handlers[key].filter(fn => fn !== callback)
+      }
+    }
+    if (type === 'presence') {
+      if (this._presenceCb === callback) this._presenceCb = null
+    }
+    return this
+  }
+
   async send({ type, event, payload }) {
     if (type === 'broadcast') {
       this.bc.postMessage({ event, payload })
@@ -135,6 +148,19 @@ class SupabaseChannel {
     }
     if (type === 'presence') {
       this._presenceCb = callback
+    }
+    return this
+  }
+
+  off(type, filter, callback) {
+    if (type === 'broadcast') {
+      const eventName = filter.event
+      if (this._handlers[eventName]) {
+        this._handlers[eventName] = this._handlers[eventName].filter(fn => fn !== callback)
+      }
+    }
+    if (type === 'presence') {
+      if (this._presenceCb === callback) this._presenceCb = null
     }
     return this
   }

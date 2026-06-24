@@ -22,14 +22,11 @@ export const useGameStore = create((set, get) => ({
   partnerConnected: false,
   syncMode: 'local',    // 'local' | 'supabase'
   isAdmin: false,       // Admin/test mode — sees both panels + skip buttons
+  channel: null,        // Global channel instance
 
   // --- Game progress ---
   floor: 1,
   transitioning: false,
-
-  // --- Per-level shared state (broadcast between players) ---
-  // Each level component manages its own local state and broadcasts
-  // via the sync channel. This store holds only global game state.
 
   // --- Actions ---
   setRoomCode: (code) => set({ roomCode: code.toUpperCase().slice(0, 6) }),
@@ -37,6 +34,7 @@ export const useGameStore = create((set, get) => ({
   setAdmin: (v) => set({ isAdmin: v }),
   setSyncMode: (mode) => set({ syncMode: mode }),
   setPartnerConnected: (v) => set({ partnerConnected: v }),
+  setChannel: (ch) => set({ channel: ch }),
 
   startGame: () => set({ screen: 'transition', floor: 1 }),
 
@@ -53,12 +51,23 @@ export const useGameStore = create((set, get) => ({
 
   goToVictory: () => set({ screen: 'victory' }),
 
-  reset: () => set({
-    roomCode: '',
-    role: null,
-    screen: 'lobby',
-    floor: 1,
-    partnerConnected: false,
-    isAdmin: false,
-  }),
+  reset: () => {
+    const { channel } = get()
+    if (channel) {
+      try {
+        channel.unsubscribe()
+      } catch (e) {
+        console.error('Error unsubscribing channel on reset:', e)
+      }
+    }
+    set({
+      roomCode: '',
+      role: null,
+      screen: 'lobby',
+      floor: 1,
+      partnerConnected: false,
+      isAdmin: false,
+      channel: null,
+    })
+  },
 }))

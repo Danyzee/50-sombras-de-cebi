@@ -121,8 +121,7 @@ function BigTimer({ sec, total = TIMER_SECS }) {
 }
 
 export default function GameScreen() {
-  const { floor, role, roomCode, advanceFloor, setPartnerConnected, isAdmin } = useGameStore()
-  const channelRef  = useRef(null)
+  const { floor, role, roomCode, channel, advanceFloor, setPartnerConnected, isAdmin } = useGameStore()
   const advancedRef = useRef(false)
 
   // ── Timer global ──────────────────────────────────────────────────────────
@@ -150,7 +149,7 @@ export default function GameScreen() {
         if (prev <= 1) {
           clearInterval(timerRef.current)
           setShowChat(true)
-          if (channelRef.current) broadcast(channelRef.current, 'global_chat_open', { targetFloor: floor })
+          if (channel) broadcast(channel, 'global_chat_open', { targetFloor: floor })
           return 0
         }
         return prev - 1
@@ -161,52 +160,48 @@ export default function GameScreen() {
 
   // ── Sync channel ──────────────────────────────────────────────────────────
   useEffect(() => {
-    if (isAdmin) return
-    let ch, alive = true
+    if (isAdmin || !channel) return
 
-    async function init() {
-      ch = await createChannel(roomCode)
-      if (!alive) return
-      channelRef.current = ch
-
-      ch.on('presence', { event: 'sync' }, () => {
-        const count = Object.keys(ch.presenceState()).length
-        setPartnerConnected(count >= 2)
-      })
-
-      ch.on('broadcast', { event: 'floor_advance' }, ({ payload }) => {
-        console.log('[DEBUG] Recibido evento floor_advance:', payload)
-        if (advancedRef.current) {
-          console.log('[DEBUG] Ya avanzado, ignorando floor_advance')
-          return
-        }
-        advancedRef.current = true
-        advanceFloor()
-      })
-
-      // Partner opened the chat (their timer hit 0 first)
-      ch.on('broadcast', { event: 'global_chat_open' }, ({ payload }) => {
-        // If they opened the chat for an old floor, ignore it
-        if (payload?.targetFloor !== undefined && payload.targetFloor !== useGameStore.getState().floor) return
-        setShowChat(true)
-      })
-
-      await ch.subscribe()
-      await ch.track({ role })
+    const onSync = () => {
+      const count = Object.keys(channel.presenceState()).length
+      setPartnerConnected(count >= 2)
     }
 
-    init()
-    return () => { alive = false; ch?.unsubscribe() }
-  }, [roomCode]) // eslint-disable-line
+    const onAdvance = ({ payload }) => {
+      console.log('[DEBUG] Recibido evento floor_advance:', payload)
+      if (advancedRef.current) {
+        console.log('[DEBUG] Ya avanzado, ignorando floor_advance')
+        return
+      }
+      advancedRef.current = true
+      advanceFloor()
+    }
+
+    const onChatOpen = ({ payload }) => {
+      // If they opened the chat for an old floor, ignore it
+      if (payload?.targetFloor !== undefined && payload.targetFloor !== useGameStore.getState().floor) return
+      setShowChat(true)
+    }
+
+    channel.on('presence', { event: 'sync' }, onSync)
+    channel.on('broadcast', { event: 'floor_advance' }, onAdvance)
+    channel.on('broadcast', { event: 'global_chat_open' }, onChatOpen)
+
+    return () => {
+      channel.off('presence', { event: 'sync' }, onSync)
+      channel.off('broadcast', { event: 'floor_advance' }, onAdvance)
+      channel.off('broadcast', { event: 'global_chat_open' }, onChatOpen)
+    }
+  }, [channel, isAdmin]) // eslint-disable-line
 
   async function handleSolve() {
     console.log('[DEBUG] Solucionado localmente. advancedRef:', advancedRef.current)
     if (advancedRef.current) return
     advancedRef.current = true
     if (isAdmin) { advanceFloor(); return }
-    if (channelRef.current) {
+    if (channel) {
       console.log('[DEBUG] Enviando broadcast floor_advance para piso:', floor)
-      await broadcast(channelRef.current, 'floor_advance', { floor })
+      await broadcast(channel, 'floor_advance', { floor })
     }
     advanceFloor()
   }
@@ -254,7 +249,7 @@ export default function GameScreen() {
           >
             <LevelComponent
               role={role}
-              channel={channelRef.current}
+              channel={channel}
               onSolve={handleSolve}
               isAdmin={isAdmin}
             />
@@ -266,7 +261,7 @@ export default function GameScreen() {
       {showChat && !isAdmin && (
         <UnicornChat
           key={chatKey}
-          channel={channelRef.current}
+          channel={channel}
           role={role}
           levelId="global"
           onDone={handleChatDone}

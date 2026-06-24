@@ -174,8 +174,12 @@ export default function GameScreen() {
         setPartnerConnected(count >= 2)
       })
 
-      ch.on('broadcast', { event: 'floor_advance' }, () => {
-        if (advancedRef.current) return
+      ch.on('broadcast', { event: 'floor_advance' }, ({ payload }) => {
+        console.log('[DEBUG] Recibido evento floor_advance:', payload)
+        if (advancedRef.current) {
+          console.log('[DEBUG] Ya avanzado, ignorando floor_advance')
+          return
+        }
         advancedRef.current = true
         advanceFloor()
       })
@@ -196,10 +200,12 @@ export default function GameScreen() {
   }, [roomCode]) // eslint-disable-line
 
   async function handleSolve() {
+    console.log('[DEBUG] Solucionado localmente. advancedRef:', advancedRef.current)
     if (advancedRef.current) return
     advancedRef.current = true
     if (isAdmin) { advanceFloor(); return }
     if (channelRef.current) {
+      console.log('[DEBUG] Enviando broadcast floor_advance para piso:', floor)
       await broadcast(channelRef.current, 'floor_advance', { floor })
     }
     advanceFloor()

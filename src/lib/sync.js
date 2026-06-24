@@ -98,10 +98,44 @@ class SupabaseChannel {
   constructor(roomCode, rawChannel) {
     this.roomCode = roomCode
     this._channel = rawChannel
+    this._handlers = {}
+    this._presenceCb = null
+
+    // Register wildcard broadcast listener immediately (before subscription)
+    this._channel.on('broadcast', { event: '*' }, (message) => {
+      const eventName = message.event
+      const payload = message.payload
+      const handlers = this._handlers[eventName] || []
+      handlers.forEach(fn => {
+        try {
+          fn({ payload })
+        } catch (e) {
+          console.error(`Error in broadcast handler for ${eventName}:`, e)
+        }
+      })
+    })
+
+    // Register presence sync listener immediately (before subscription)
+    this._channel.on('presence', { event: 'sync' }, () => {
+      if (this._presenceCb) {
+        try {
+          this._presenceCb()
+        } catch (e) {
+          console.error('Error in presence sync handler:', e)
+        }
+      }
+    })
   }
 
   on(type, filter, callback) {
-    this._channel.on(type, filter, callback)
+    if (type === 'broadcast') {
+      const eventName = filter.event
+      if (!this._handlers[eventName]) this._handlers[eventName] = []
+      this._handlers[eventName].push(callback)
+    }
+    if (type === 'presence') {
+      this._presenceCb = callback
+    }
     return this
   }
 
@@ -123,7 +157,15 @@ class SupabaseChannel {
   }
 
   async unsubscribe() {
-    return this._channel.unsubscribe()
+    if (_supabaseClient) {
+      try {
+        await _supabaseClient.removeChannel(this._channel)
+      } catch (err) {
+        console.error('Error removing channel:', err)
+      }
+    } else {
+      await this._channel.unsubscribe()
+    }
   }
 }
 

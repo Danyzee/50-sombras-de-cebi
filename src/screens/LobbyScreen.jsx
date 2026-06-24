@@ -47,6 +47,14 @@ export default function LobbyScreen() {
   const [error, setError] = useState('')
   const channelRef = useRef(null)
 
+  useEffect(() => {
+    return () => {
+      if (channelRef.current) {
+        channelRef.current.unsubscribe()
+      }
+    }
+  }, [])
+
   // ---- Generate code ----
   function handleGenerate() {
     const code = generateCode()
@@ -58,6 +66,16 @@ export default function LobbyScreen() {
     const code = localInput.trim().toUpperCase()
     if (code.length < 4) { setError('El código debe tener al menos 4 caracteres'); return }
     setError('')
+
+    // Unsubscribe from any previous channel first
+    if (channelRef.current) {
+      try {
+        await channelRef.current.unsubscribe()
+      } catch (err) {
+        console.error('Error unsubscribing previous channel:', err)
+      }
+      channelRef.current = null
+    }
 
     // ---- ADMIN MODE ----
     if (code === ADMIN_CODE) {
@@ -307,7 +325,19 @@ export default function LobbyScreen() {
               <button
                 className="btn"
                 style={{ fontSize: '0.7rem', padding: '0.4rem 0.8rem' }}
-                onClick={() => { setPhase('enter-code'); setRole(null); setPartnerConnected(false) }}
+                onClick={async () => {
+                  if (channelRef.current) {
+                    try {
+                      await channelRef.current.unsubscribe()
+                    } catch (err) {
+                      console.error('Error unsubscribing channel on room change:', err)
+                    }
+                    channelRef.current = null
+                  }
+                  setPhase('enter-code')
+                  setRole(null)
+                  setPartnerConnected(false)
+                }}
               >
                 ← Cambiar sala
               </button>

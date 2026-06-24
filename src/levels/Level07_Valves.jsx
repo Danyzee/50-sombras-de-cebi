@@ -21,11 +21,15 @@ const TOTAL  = 100
 // Genera las 100 bolas con posición y velocidad aleatorias
 function initBalls(w, h) {
   return Array.from({ length: TOTAL }, (_, i) => {
+    const angle = Math.random() * Math.PI * 2
+    const speed = 0.4 + Math.random() * 0.7   // px/frame
     return {
       id:    i,
       value: i + 1,                            // 1 … 100
       x:     10 + Math.random() * (w - 80),
       y:     10 + Math.random() * (h - 60),
+      vx:    Math.cos(angle) * speed,
+      vy:    Math.sin(angle) * speed,
     }
   })
 }
@@ -34,6 +38,7 @@ function initBalls(w, h) {
 function MovingNumbers({ onClickTarget, solved }) {
   const containerRef = useRef(null)
   const ballsRef     = useRef([])
+  const rafRef       = useRef(null)
   const [renderKey, setRenderKey] = useState(0)
 
   // Inicializar bolas al montar
@@ -44,6 +49,37 @@ function MovingNumbers({ onClickTarget, solved }) {
     ballsRef.current = initBalls(w || 560, h || 480)
     setRenderKey(k => k + 1)
   }, [])
+
+  // Loop de animación
+  useEffect(() => {
+    if (solved) return
+    const el = containerRef.current
+    if (!el) return
+
+    function loop() {
+      const { width: W, height: H } = el.getBoundingClientRect()
+      const balls = ballsRef.current
+      for (let i = 0; i < balls.length; i++) {
+        const b = balls[i]
+        b.x += b.vx
+        b.y += b.vy
+        if (b.x < 0)      { b.x = 0;      b.vx = Math.abs(b.vx) }
+        if (b.y < 0)      { b.y = 0;      b.vy = Math.abs(b.vy) }
+        if (b.x > W - 44) { b.x = W - 44; b.vx = -Math.abs(b.vx) }
+        if (b.y > H - 32) { b.y = H - 32; b.vy = -Math.abs(b.vy) }
+      }
+      // Actualizar DOM directamente (sin re-render)
+      for (let i = 0; i < balls.length; i++) {
+        const el2 = document.getElementById(`ball-${balls[i].id}`)
+        if (el2) {
+          el2.style.transform = `translate(${balls[i].x}px, ${balls[i].y}px)`
+        }
+      }
+      rafRef.current = requestAnimationFrame(loop)
+    }
+    rafRef.current = requestAnimationFrame(loop)
+    return () => cancelAnimationFrame(rafRef.current)
+  }, [solved])
 
   return (
     <div

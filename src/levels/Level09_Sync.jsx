@@ -14,59 +14,53 @@ const WINDOW_MS = 2000
 export default function Level09({ role, channel, onSolve, isAdmin }) {
   const [myPressed,      setMyPressed]      = useState(false)
   const [partnerPressed, setPartnerPressed] = useState(false)
-  const [myTime,         setMyTime]         = useState(null)
-  const [partnerTime,    setPartnerTime]    = useState(null)
   const [status,         setStatus]         = useState('')  // '' | 'waiting' | 'solved' | 'missed'
-  const windowRef = useRef(null)
+  
+  const windowRef  = useRef(null)
+  const partnerRef = useRef(null)
 
   useEffect(() => {
     if (!channel) return
-    channel.on('broadcast', { event: 'l09_press' }, ({ payload }) => {
+    channel.on('broadcast', { event: 'l09_press' }, () => {
       setPartnerPressed(true)
-      setPartnerTime(payload.ts)
+      // Si recibimos el aviso del compañero, le damos 1.5s para que nosotros también pulsemos
+      // Si no lo pulsamos en ese tiempo, reiniciamos su estado.
+      clearTimeout(partnerRef.current)
+      partnerRef.current = setTimeout(() => {
+        setPartnerPressed(false)
+      }, 1500)
     })
   }, [channel])
 
-  // Check sync whenever either time changes
+  // Chequear victoria
   useEffect(() => {
-    if (!myTime || !partnerTime) return
-    const diff = Math.abs(myTime - partnerTime)
-    if (diff <= 500) {
+    if (myPressed && partnerPressed) {
       setStatus('solved')
       clearTimeout(windowRef.current)
+      clearTimeout(partnerRef.current)
       setTimeout(onSolve, 1500)
-    } else {
-      setStatus('missed')
-      setTimeout(() => {
-        setMyPressed(false); setPartnerPressed(false)
-        setMyTime(null); setPartnerTime(null)
-        setStatus('')
-      }, 2000)
     }
-  }, [myTime, partnerTime]) // eslint-disable-line
+  }, [myPressed, partnerPressed]) // eslint-disable-line
 
   function handlePress() {
     if (myPressed || status === 'solved') return
-    const ts = Date.now()
     setMyPressed(true)
-    setMyTime(ts)
     setStatus('waiting')
-    broadcast(channel, 'l09_press', { ts })
+    broadcast(channel, 'l09_press', {})
 
-    // If partner already pressed before me
-    if (partnerTime) return  // effect will trigger
+    // Si el compañero ya había pulsado (su aviso llegó hace menos de 1.5s)
+    // el useEffect de arriba cazará myPressed && partnerPressed y ganaremos.
+    if (partnerPressed) return 
 
-    // Start window — if partner doesn't press within WINDOW_MS → missed
+    // Si somos los primeros en pulsar, abrimos una ventana de 1.5s para que llegue el aviso del compañero.
     windowRef.current = setTimeout(() => {
-      if (!partnerTime) {
-        setStatus('missed')
-        setTimeout(() => {
-          setMyPressed(false); setPartnerPressed(false)
-          setMyTime(null); setPartnerTime(null)
-          setStatus('')
-        }, 1500)
-      }
-    }, WINDOW_MS)
+      setStatus('missed')
+      setTimeout(() => {
+        setMyPressed(false)
+        setPartnerPressed(false)
+        setStatus('')
+      }, 1500)
+    }, 1500)
   }
 
   const instrText = role === 'j1' ? 'Jugador 1' : 'Jugador 2'

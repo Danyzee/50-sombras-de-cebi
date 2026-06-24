@@ -4,6 +4,7 @@ import LobbyScreen from './screens/LobbyScreen'
 import GameScreen from './screens/GameScreen'
 import VictoryScreen from './screens/VictoryScreen'
 import FloorTransition from './components/ui/FloorTransition'
+import DebugOverlay from './components/ui/DebugOverlay'
 
 export default function App() {
   const { screen } = useGameStore()
@@ -18,6 +19,7 @@ export default function App() {
         </div>
       )}
       {screen === 'victory' && <VictoryScreen />}
+      <DebugOverlay />
     </div>
   )
 }

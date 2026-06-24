@@ -11,8 +11,12 @@ export default function App() {
   return (
     <div className="app-root">
       {screen === 'lobby' && <LobbyScreen />}
-      {screen === 'transition' && <FloorTransition />}
-      {screen === 'game' && <GameScreen />}
+      {(screen === 'game' || screen === 'transition') && <GameScreen />}
+      {screen === 'transition' && (
+        <div style={{ position: 'fixed', inset: 0, zIndex: 9999 }}>
+          <FloorTransition />
+        </div>
+      )}
       {screen === 'victory' && <VictoryScreen />}
     </div>
   )

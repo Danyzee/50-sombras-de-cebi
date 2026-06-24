@@ -195,11 +195,13 @@ export default function GameScreen() {
     return () => { alive = false; ch?.unsubscribe() }
   }, [roomCode]) // eslint-disable-line
 
-  function handleSolve() {
+  async function handleSolve() {
     if (advancedRef.current) return
     advancedRef.current = true
     if (isAdmin) { advanceFloor(); return }
-    broadcast(channelRef.current, 'floor_advance', { floor })
+    if (channelRef.current) {
+      await broadcast(channelRef.current, 'floor_advance', { floor })
+    }
     advanceFloor()
   }
 

@@ -169,6 +169,11 @@ export default function GameScreen() {
 
     const onAdvance = ({ payload }) => {
       console.log('[DEBUG] Recibido evento floor_advance:', payload)
+      // Evitar que broadcasts atrasados causen un salto de nivel no deseado
+      if (payload && payload.floor < useGameStore.getState().floor) {
+        console.log('[DEBUG] Broadcast antiguo, ignorando')
+        return
+      }
       if (advancedRef.current) {
         console.log('[DEBUG] Ya avanzado, ignorando floor_advance')
         return

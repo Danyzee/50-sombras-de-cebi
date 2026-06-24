@@ -153,7 +153,6 @@ export default function Level06({ role, channel, onSolve, isAdmin }) {
     })
     channel.on('broadcast', { event: 'l06_unicorn' }, () => {
       setUnicorn(true)
-      setTimeout(onSolve, 5500)
     })
     // Partner triggered chat
     channel.on('broadcast', { event: 'l06_chat_open' }, () => {
@@ -185,10 +184,16 @@ export default function Level06({ role, channel, onSolve, isAdmin }) {
       setTimeout(() => {
         setUnicorn(true)
         if (channel) broadcast(channel, 'l06_unicorn', {})
-        setTimeout(onSolve, 5500)
       }, 600)
     }
   }, [myDone, partDone]) // eslint-disable-line
+
+  // Unicorn animation: after it plays, call onSolve
+  useEffect(() => {
+    if (!unicorn) return
+    const t = setTimeout(() => onSolve(), 5500)
+    return () => clearTimeout(t)
+  }, [unicorn]) // eslint-disable-line
 
   // ── Hacer un movimiento (solo el jugador de turno) ──
   function handleCell(idx) {

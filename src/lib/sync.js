@@ -114,20 +114,6 @@ class SupabaseChannel {
     this._handlers = {}
     this._presenceCb = null
 
-    // Register wildcard broadcast listener immediately (before subscription)
-    this._channel.on('broadcast', { event: '*' }, (message) => {
-      const eventName = message.event
-      const payload = message.payload
-      const handlers = this._handlers[eventName] || []
-      handlers.forEach(fn => {
-        try {
-          fn({ payload })
-        } catch (e) {
-          console.error(`Error in broadcast handler for ${eventName}:`, e)
-        }
-      })
-    })
-
     // Register presence sync listener immediately (before subscription)
     this._channel.on('presence', { event: 'sync' }, () => {
       if (this._presenceCb) {
@@ -143,7 +129,20 @@ class SupabaseChannel {
   on(type, filter, callback) {
     if (type === 'broadcast') {
       const eventName = filter.event
-      if (!this._handlers[eventName]) this._handlers[eventName] = []
+      if (!this._handlers[eventName]) {
+        this._handlers[eventName] = []
+        // Register native listener dynamically the first time this event is needed
+        this._channel.on('broadcast', { event: eventName }, ({ payload }) => {
+          const handlers = this._handlers[eventName] || []
+          handlers.forEach(fn => {
+            try {
+              fn({ payload })
+            } catch (e) {
+              console.error(`Error in broadcast handler for ${eventName}:`, e)
+            }
+          })
+        })
+      }
       this._handlers[eventName].push(callback)
     }
     if (type === 'presence') {

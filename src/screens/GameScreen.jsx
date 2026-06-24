@@ -200,6 +200,11 @@ export default function GameScreen() {
   }, [channel, isAdmin]) // eslint-disable-line
 
   async function handleSolve() {
+    const currentFloor = useGameStore.getState().floor
+    if (currentFloor !== floor) {
+      console.log('[DEBUG] Ignorando handleSolve antiguo para piso:', floor)
+      return
+    }
     console.log('[DEBUG] Solucionado localmente. advancedRef:', advancedRef.current)
     if (advancedRef.current) return
     advancedRef.current = true

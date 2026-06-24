@@ -120,8 +120,8 @@ export default function Level07({ role, channel, onSolve, isAdmin }) {
     }
   }
 
-  // ── Panel de J1: números en movimiento ────────────────────────────────────
-  function J1Panel({ active }) {
+  // ── Panel de J1: números estáticos ─────────────────────────────────────────
+  const renderJ1Panel = (active) => {
     return (
       <div className={`level-panel j1-panel ${active ? 'active-panel' : ''}`}>
         <div className="level-panel-header">
@@ -163,7 +163,7 @@ export default function Level07({ role, channel, onSolve, isAdmin }) {
   }
 
   // ── Panel de J2: pista ────────────────────────────────────────────────────
-  function J2Panel({ active }) {
+  const renderJ2Panel = (active) => {
     return (
       <div className={`level-panel j2-panel ${active ? 'active-panel' : ''}`}>
         <div className="level-panel-header">
@@ -219,12 +219,12 @@ export default function Level07({ role, channel, onSolve, isAdmin }) {
   }
 
   // ── Vistas ────────────────────────────────────────────────────────────────
-  if (isAdmin) return <><J1Panel active={true} /><J2Panel active={true} /></>
+  if (isAdmin) return <>{renderJ1Panel(true)}{renderJ2Panel(true)}</>
 
   if (role === 'j1') {
     return (
       <>
-        <J1Panel active={true} />
+        {renderJ1Panel(true)}
         <div className="level-panel j2-panel">
           <div className="level-panel-header">
             <div className="level-panel-role">Jugador 2 · Pista (vista)</div>
@@ -249,15 +249,15 @@ export default function Level07({ role, channel, onSolve, isAdmin }) {
     <>
       <div className="level-panel j1-panel">
         <div className="level-panel-header">
-          <div className="level-panel-role">Jugador 1 · Números (vista)</div>
-          <div className="level-panel-title">Está buscando el número</div>
+          <div className="level-panel-role">Jugador 1 · Panel de Luces (vista)</div>
+          <div className="level-panel-title">Tu compañero busca el número</div>
         </div>
         <div className="level-panel-body" style={{ alignItems: 'center', justifyContent: 'center' }}>
           <div className="panel-card" style={{ textAlign: 'center' }}>
-            <div style={{ fontSize: '2.5rem', marginBottom: '0.5rem' }}>🔢</div>
+            <div style={{ fontSize: '2.5rem', marginBottom: '0.5rem' }}>🔣</div>
             <p style={{ fontSize: '0.82rem', color: 'var(--text-muted)', lineHeight: 1.6 }}>
-              J1 tiene 100 números en movimiento.<br />
-              Dile qué número debe clicar.
+              Tu compañero ve 100 números esparcidos por la pantalla.<br />
+              Debes decirle cuál de todos ellos es el correcto para que haga clic en él.
             </p>
             {clickCount > 0 && (
               <div style={{ fontFamily: 'var(--font-mono)', fontSize: '0.7rem', color: 'var(--text-dim)', marginTop: '0.5rem' }}>
@@ -272,7 +272,7 @@ export default function Level07({ role, channel, onSolve, isAdmin }) {
           )}
         </div>
       </div>
-      <J2Panel active={true} />
+      {renderJ2Panel(true)}
     </>
   )
 }

@@ -198,7 +198,6 @@ export default function GameScreen() {
     console.log('[DEBUG] Solucionado localmente. advancedRef:', advancedRef.current)
     if (advancedRef.current) return
     advancedRef.current = true
-    if (isAdmin) { advanceFloor(); return }
     if (channel) {
       console.log('[DEBUG] Enviando broadcast floor_advance para piso:', floor)
       await broadcast(channel, 'floor_advance', { floor })

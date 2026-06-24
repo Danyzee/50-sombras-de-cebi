@@ -14,7 +14,7 @@ import { motion, AnimatePresence } from 'framer-motion'
 import { broadcast } from '../lib/sync'
 import UnicornChat from '../components/ui/UnicornChat'
 
-const PHRASE = 'YO, NURIA O JOSÉ, SOY INCAPAZ DE RESOLVER ESTE EJERCICIO SIN AYUDA DE LI, AYUDA'
+const PHRASE = 'EL UNICORNIO ME HA GANADO, LI ES LA MEJOR'
 
 // Combinaciones ganadoras
 const WINS = [

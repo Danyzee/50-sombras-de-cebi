@@ -40,18 +40,15 @@ function Stars() {
 }
 
 export default function LobbyScreen() {
-  const { roomCode, role, setRoomCode, setRole, startGame, partnerConnected, setPartnerConnected, setAdmin } = useGameStore()
+  const { roomCode, role, setRoomCode, setRole, startGame, partnerConnected, setPartnerConnected, setAdmin, channel, setChannel } = useGameStore()
   const [localInput, setLocalInput] = useState('')
   const [phase, setPhase] = useState('enter-code')   // 'enter-code' | 'pick-role'
   const [takenRole, setTakenRole] = useState(null)
   const [error, setError] = useState('')
-  const channelRef = useRef(null)
 
   useEffect(() => {
     return () => {
-      if (channelRef.current) {
-        channelRef.current.unsubscribe()
-      }
+      // DO NOT unsubscribe on unmount, we want the channel to persist into GameScreen
     }
   }, [])
 
@@ -68,13 +65,13 @@ export default function LobbyScreen() {
     setError('')
 
     // Unsubscribe from any previous channel first
-    if (channelRef.current) {
+    if (channel) {
       try {
-        await channelRef.current.unsubscribe()
+        await channel.unsubscribe()
       } catch (err) {
         console.error('Error unsubscribing previous channel:', err)
       }
-      channelRef.current = null
+      setChannel(null)
     }
 
     // ---- ADMIN MODE ----
@@ -92,7 +89,7 @@ export default function LobbyScreen() {
 
     // Subscribe to channel
     const ch = await createChannel(code)
-    channelRef.current = ch
+    setChannel(ch)
 
     ch.on('presence', { event: 'sync' }, () => {
       const state = ch.presenceState()
@@ -116,15 +113,17 @@ export default function LobbyScreen() {
   async function handlePickRole(r) {
     if (r === takenRole) return
     setRole(r)
-    if (channelRef.current) {
-      await channelRef.current.track({ role: r })
+    // Usamos 'ch' si estamos en medio de setup, o 'channel' si ya se guardó.
+    // Como handlePickRole se llama por un botón, 'channel' de Zustand ya debería tener el valor.
+    if (channel) {
+      await channel.track({ role: r })
     }
   }
 
   async function handleStart() {
     if (!role) return
-    if (channelRef.current) {
-      await broadcast(channelRef.current, 'game_start', {})
+    if (channel) {
+      await broadcast(channel, 'game_start', {})
     }
     startGame()
   }
@@ -326,16 +325,16 @@ export default function LobbyScreen() {
                 className="btn"
                 style={{ fontSize: '0.7rem', padding: '0.4rem 0.8rem' }}
                 onClick={async () => {
-                  if (channelRef.current) {
+                  if (channel) {
                     try {
-                      await channelRef.current.unsubscribe()
+                      await channel.unsubscribe()
                     } catch (err) {
-                      console.error('Error unsubscribing channel on room change:', err)
+                      console.error(err)
                     }
-                    channelRef.current = null
+                    setChannel(null)
                   }
                   setPhase('enter-code')
-                  setRole(null)
+                  setTakenRole(null)
                   setPartnerConnected(false)
                 }}
               >

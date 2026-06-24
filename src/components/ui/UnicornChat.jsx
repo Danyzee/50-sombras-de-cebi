@@ -86,8 +86,9 @@ export default function UnicornChat({ channel, role, levelId, onDone }) {
     channel.on('broadcast', { event: `${pfx}_phrase_ok` }, () => {
       setPartPhraseOk(true)
     })
-    channel.on('broadcast', { event: `${pfx}_choice` }, ({ payload }) => {
-      setPartChoiceTs(payload.ts)
+    channel.on('broadcast', { event: `${pfx}_choice` }, () => {
+      // Registrar la hora local de LLEGADA del mensaje (evita desincronización de relojes de sistema)
+      setPartChoiceTs(Date.now())
     })
   }, [channel, pfx])
 
@@ -133,11 +134,11 @@ export default function UnicornChat({ channel, role, levelId, onDone }) {
   // ── Elegir opción ──────────────────────────────────────────────────────
   function handleOption(idx) {
     if (myChoice !== null || chatPhase !== 'choice') return
-    const ts = Date.now()
+    const localTs = Date.now()
     setMyChoice(idx)
-    setMyChoiceTs(ts)
+    setMyChoiceTs(localTs)
     setChatPhase('choice_waiting')
-    if (channel) broadcast(channel, `${pfx}_choice`, { ts })
+    if (channel) broadcast(channel, `${pfx}_choice`, {})
   }
 
   // Admin: saltar directamente

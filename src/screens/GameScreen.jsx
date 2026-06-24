@@ -20,7 +20,7 @@ import Level09 from '../levels/Level09_Sync'
 import Level10 from '../levels/Level10_Chest'
 
 const LEVELS      = [null, Level01, Level02, Level03, Level04, Level05, Level06, Level07, Level08, Level09, Level10]
-const TIMER_SECS  = 45
+const TIMER_SECS  = 120
 const NO_TIMER    = [10]  // Level 10 (finale) has no pressure timer
 
 // ── Gran temporizador visual ─────────────────────────────────────────────────
@@ -150,7 +150,7 @@ export default function GameScreen() {
         if (prev <= 1) {
           clearInterval(timerRef.current)
           setShowChat(true)
-          if (channelRef.current) broadcast(channelRef.current, 'global_chat_open', {})
+          if (channelRef.current) broadcast(channelRef.current, 'global_chat_open', { targetFloor: floor })
           return 0
         }
         return prev - 1
@@ -181,7 +181,9 @@ export default function GameScreen() {
       })
 
       // Partner opened the chat (their timer hit 0 first)
-      ch.on('broadcast', { event: 'global_chat_open' }, () => {
+      ch.on('broadcast', { event: 'global_chat_open' }, ({ payload }) => {
+        // If they opened the chat for an old floor, ignore it
+        if (payload?.targetFloor !== undefined && payload.targetFloor !== useGameStore.getState().floor) return
         setShowChat(true)
       })
 
